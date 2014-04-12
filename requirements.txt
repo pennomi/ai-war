@@ -1,0 +1,1 @@
+pip install hg+https://pyglet.googlecode.com/hg/
