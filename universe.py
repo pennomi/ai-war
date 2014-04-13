@@ -1,6 +1,7 @@
 import random
 from actions import Move, Shot, Scan
 import pyglet
+from pyglet import gl
 from vec2d import Vec2d
 
 SCAN_DISTANCE = 5
@@ -57,21 +58,34 @@ class Universe:
         #    x %= self.size
         #    y %= self.size
         #    tiles[y][x] = char
-
         for ship in self.ships:
-            ship.sprite.position = tuple(ship.position * 8)
+            ship.sprite.position = ship.position * 8
             ship.sprite.draw()
             #set_tile(ship.position, ship.letter())
+        gl.glColor3f(1, 1, 0)
         for explosion in self.explosions:
-            pass #set_tile(explosion, "*")
+            gl.glPointSize(8.0)
+            pyglet.graphics.draw(
+                1, pyglet.gl.GL_POINTS,
+                ('v2i', (explosion.x * 8, explosion.y * 8))
+            )
+            pass  # set_tile(explosion, "*")
+        laser_points = []
+        # draw laser lines TODO: They're not always right
         for shot in self.shots:
-            pass #set_tile(shot.position, "|")
-        #print('_' * 100)
-        #print("\n".join(["".join(_) for _ in reversed(tiles)]))
+            laser_points.append(shot.owner.position.x * 8 + 4)
+            laser_points.append(shot.owner.position.y * 8 + 4)
+            laser_points.append(shot.position.x * 8 + 4)
+            laser_points.append(shot.position.y * 8 + 4)
+        gl.glColor3f(1, 0, 0)
+        pyglet.graphics.draw(
+            len(self.shots) * 2, pyglet.gl.GL_LINES,
+            ('v2i', laser_points)
+        )
 
     def in_range(self, a, b):
+        a, b = Vec2d(a), Vec2d(b)  # copy
         # The points wrap around the universe
-        # TODO: Yeah, we need a 2D vector class. This is just ugly.
         if a.x - b.x > self.size / 2:
             b += Vec2d(self.size, 0)
         if a.x - b.x < -self.size / 2:

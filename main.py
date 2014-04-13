@@ -57,11 +57,11 @@ def run_pyglet(loop):
 
 def universe_tick(universe, loop):
     universe.update()
-    loop.call_later(1.0, universe_tick, universe, loop)
+    loop.call_later(0.1, universe_tick, universe, loop)
 
 
 def universe_render(universe, loop, window):
-    #universe.update_gfx()
+    #universe.update_gfx()  # TODO: This will allow smooth movement
     window.clear()
     universe.render()
     loop.call_later(0.1, universe_render, universe, loop, window)
@@ -69,7 +69,7 @@ def universe_render(universe, loop, window):
 
 def main():
     # HEADS UP! Enabling vsync on Linux will cause the app to freeze.
-    window = pyglet.window.Window(width=800, height=600, vsync=False)
+    window = pyglet.window.Window(width=50 * 8, height=50 * 8, vsync=False)
 
     universe = Universe(50, [Asteroid, FooFighter])
     event_loop = asyncio.get_event_loop()

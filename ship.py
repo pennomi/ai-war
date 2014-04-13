@@ -12,7 +12,8 @@ class Ship:
         self.dead = False
 
         # rendering stuff
-        image = pyglet.image.load('ship.png')
+        image = pyglet.image.load('images/{}.png'.format(
+            self.__class__.__name__))
         self.sprite = pyglet.sprite.Sprite(
             image, x=self.position.x, y=self.position.y)
 
