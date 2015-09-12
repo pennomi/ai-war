@@ -38,7 +38,8 @@ import asyncio
 from contenders.asteroid import Asteroid
 from contenders.foo_fighter import FooFighter
 from contenders.ufo import UFO
-CONTENDERS = [Asteroid, FooFighter, UFO]
+from contenders.josh_ships import Bomber
+CONTENDERS = [Asteroid, FooFighter, UFO, Bomber]
 
 
 def run_pyglet(loop):
