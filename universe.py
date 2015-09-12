@@ -19,55 +19,89 @@ def _velocity_and_direction(ship):
         return Vec2d(-1, 0), -90
 
 
+# noinspection PyBroadException
 class Universe:
+    shots = []
+    explosions = []
+    scans = []
+
     def __init__(self, size, contender_classes):
         self.size = size
         r = random.randint
         self.ships = []
         for shiptype in contender_classes:
-            self.ships += [shiptype(self, Vec2d(r(0, size-1), r(0, size-1)))
+            self.ships += [shiptype(self, Vec2d(r(0, size - 1), r(0, size - 1)))
                            for _ in range(50)]
 
+        # Make something we can draw for the scanner
+        self.scanner_model = []
+        for i in range(30):
+            self.scanner_model.append(Vec2d(0, SCAN_DISTANCE).rotated(12 * i))
+
     def update(self):
-        # execute the move
+        # get all the orders
         for ship in self.ships:
             ship.requested_action = ship.action()
+
         # direction change requests first!
-        for ship in [s for s in self.ships if s.requested_action in Move]:
-            ship.direction = ship.requested_action
+        for ship in self.ships:
+            if ship.requested_action in Move:
+                ship.direction = ship.requested_action
+
         # move all ships
         for ship in self.ships:
             self.move_ship(ship)
+
         # shots
-        self.shots = []
-        for ship in (s for s in self.ships
-                     if isinstance(s.requested_action, Shot)):
+        self.shots.clear()
+        for ship in self.ships:
+            if not isinstance(ship.requested_action, Shot):
+                continue
             shot = ship.requested_action
             # check that shot is within range
             if self.in_range(shot.owner.position, shot.position):
                 self.shots.append(shot)
+
         # remove all dead ships (only sort of efficiently)
-        self.explosions = []  # cause it'll look cool
+        self.explosions.clear()
         for i, ship in enumerate(self.ships):
-            for ship2 in self.ships[i+1:] + self.shots:
+            for ship2 in self.ships[i + 1:] + self.shots:
                 if ship.position == ship2.position:
                     ship.dead = True
                     ship2.dead = True
                     self.explosions.append(ship.position)
         [self.ships.remove(ship) for ship in self.ships if ship.dead]
+
         # scan only if we're not dead
-        self.scan_bubbles = []
-        for ship in (s for s in self.ships if s.requested_action in Scan):
-            ship.received_scan(self.perform_scan(ship))
+        self.scans.clear()
+        for ship in self.ships:
+            if ship.requested_action not in Scan:
+                continue
+            try:
+                ship.received_scan(self.perform_scan(ship))
+                self.scans.append(ship.position)
+            except Exception:
+                ship.dead = True
 
     def render(self):
-        # for smooth rendering
+        # draw scans
+        gl.glColor3f(0, 0.2, 0.2)
+        for scan in self.scans:
+            vertices = [
+                ((scan.x + p.x) * 8 + 4, (scan.y + p.y) * 8 + 4) for p in self.scanner_model
+            ]
+            vertices = tuple(item for sublist in vertices for item in sublist)
+            pyglet.graphics.draw(
+                int(len(vertices) / 2), pyglet.gl.GL_LINES,
+                ('v2f', vertices)
+            )
+
         # draw ships
         for ship in self.ships:
             ship.sprite.position = ship.position * 8 + Vec2d(4, 4)
             ship.sprite.draw()
         gl.glColor3f(1, 1, 0)
-        # draw explosions TODO: Animate!
+        # draw explosions
         for explosion in self.explosions:
             gl.glPointSize(8.0)
             pyglet.graphics.draw(
@@ -78,13 +112,34 @@ class Universe:
         # draw laser lines
         for shot in self.shots:
             startpos = shot.owner.position * 8 + Vec2d(4, 4)
-            laser_points.append(startpos.x)
-            laser_points.append(startpos.y)
-            laser_points.append(shot.position.x * 8 + 4)
-            laser_points.append(shot.position.y * 8 + 4)
+            if (shot.position - shot.owner.position).length < 6:
+                laser_points.append(startpos.x)
+                laser_points.append(startpos.y)
+                laser_points.append(shot.position.x * 8 + 4)
+                laser_points.append(shot.position.y * 8 + 4)
+            # elif startpos.length > 100:
+            #     laser_points.append(startpos.x - 100)
+            #     laser_points.append(startpos.y - 100)
+            #     laser_points.append(shot.position.x * 8 + 4)
+            #     laser_points.append(shot.position.y * 8 + 4)
+            #     laser_points.append(startpos.x)
+            #     laser_points.append(startpos.y)
+            #     laser_points.append(shot.position.x * 8 + 4 + 100)
+            #     laser_points.append(shot.position.y * 8 + 4 + 100)
+            # else:
+            #     laser_points.append(startpos.x + 100)
+            #     laser_points.append(startpos.y + 100)
+            #     laser_points.append(shot.position.x * 8 + 4)
+            #     laser_points.append(shot.position.y * 8 + 4)
+            #     laser_points.append(startpos.x)
+            #     laser_points.append(startpos.y)
+            #     laser_points.append(shot.position.x * 8 + 4 - 100)
+            #     laser_points.append(shot.position.y * 8 + 4 - 100)
+
+
         gl.glColor3f(1, 0, 0)
         pyglet.graphics.draw(
-            len(self.shots) * 2, pyglet.gl.GL_LINES,
+            int(len(laser_points) / 2), pyglet.gl.GL_LINES,
             ('v2i', laser_points)
         )
 
@@ -111,19 +166,6 @@ class Universe:
         """Return the position and broadcast data of all ships in range."""
         scan_data = []
         for s in self.ships:
-            if self.in_range(s.position, ship.position) and not s is ship:
+            if self.in_range(s.position, ship.position) and s is not ship:
                 scan_data.append((s.position, s.broadcast()))
-
-        # If we want to render the scanners, we'll need to render them
-        centers = [
-            ship.position,
-            ship.position + Vec2d(self.size, 0),
-            ship.position + Vec2d(0, self.size),
-            ship.position + Vec2d(self.size, self.size),
-            ship.position + Vec2d(-self.size, 0),
-            ship.position + Vec2d(0, -self.size),
-            ship.position + Vec2d(-self.size, -self.size),
-        ]
-        self.scan_bubbles.extend(centers)
-
         return scan_data

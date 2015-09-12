@@ -11,7 +11,6 @@ class Ship:
     def __init__(self, universe, position: Vec2d):
         self.universe_size = universe.size
         self.position = position
-        self.last_hit = 0
         self.requested_action = None
         self.direction = Move.UP
         self.dead = False

@@ -50,21 +50,17 @@ def run_pyglet(loop):
         w.flip()
         if w.has_exit:
             loop.stop()
-    loop.call_later(0.01, run_pyglet, loop)
+    loop.call_later(1/30., run_pyglet, loop)
 
 
 TICK_SPEED = 1/60
 
 
-def universe_tick(universe, loop):
+def universe_tick(universe, loop, window):
     universe.update()
-    loop.call_later(TICK_SPEED, universe_tick, universe, loop)
-
-
-def universe_render(universe, loop, window):
     window.clear()
     universe.render()
-    loop.call_later(TICK_SPEED, universe_render, universe, loop, window)
+    loop.call_later(TICK_SPEED, universe_tick, universe, loop, window)
 
 
 def main():
@@ -76,8 +72,7 @@ def main():
     universe = Universe(size, CONTENDERS)
     event_loop = asyncio.get_event_loop()
     event_loop.call_soon(run_pyglet, event_loop)
-    event_loop.call_soon(universe_tick, universe, event_loop)
-    event_loop.call_soon(universe_render, universe, event_loop, window)
+    event_loop.call_soon(universe_tick, universe, event_loop, window)
     event_loop.run_forever()
     event_loop.close()
 
