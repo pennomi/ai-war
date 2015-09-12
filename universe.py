@@ -8,16 +8,28 @@ SCAN_DISTANCE = 5
 _SCAN_DISTANCE_SQ = SCAN_DISTANCE ** 2
 
 
+def _velocity_and_direction(ship):
+    if ship.direction == Move.UP:
+        return Vec2d(0, 1), 0
+    elif ship.direction == Move.DOWN:
+        return Vec2d(0, -1), 180
+    elif ship.direction == Move.RIGHT:
+        return Vec2d(1, 0), 90
+    elif ship.direction == Move.LEFT:
+        return Vec2d(-1, 0), -90
+
+
 class Universe:
     def __init__(self, size, contender_classes):
         self.size = size
         r = random.randint
         self.ships = []
         for shiptype in contender_classes:
-            self.ships += [shiptype(Vec2d(r(0, size-1), r(0, size-1)))
-                           for _ in range(10)]
+            self.ships += [shiptype(self, Vec2d(r(0, size-1), r(0, size-1)))
+                           for _ in range(50)]
 
     def update(self):
+        # execute the move
         for ship in self.ships:
             ship.requested_action = ship.action()
         # direction change requests first!
@@ -49,32 +61,25 @@ class Universe:
             ship.received_scan(self.perform_scan(ship))
 
     def render(self):
-        #ship_batch = pyglet.batch.Batch()
-
-        #tiles = [["."] * self.size for _ in range(self.size)]
-
-        #def set_tile(position, char):
-        #    x, y = position
-        #    x %= self.size
-        #    y %= self.size
-        #    tiles[y][x] = char
+        # for smooth rendering
+        # draw ships
         for ship in self.ships:
-            ship.sprite.position = ship.position * 8
+            ship.sprite.position = ship.position * 8 + Vec2d(4, 4)
             ship.sprite.draw()
-            #set_tile(ship.position, ship.letter())
         gl.glColor3f(1, 1, 0)
+        # draw explosions TODO: Animate!
         for explosion in self.explosions:
             gl.glPointSize(8.0)
             pyglet.graphics.draw(
                 1, pyglet.gl.GL_POINTS,
-                ('v2i', (explosion.x * 8, explosion.y * 8))
+                ('v2i', (explosion.x * 8 + 4, explosion.y * 8 + 4))
             )
-            pass  # set_tile(explosion, "*")
         laser_points = []
-        # draw laser lines TODO: They're not always right
+        # draw laser lines
         for shot in self.shots:
-            laser_points.append(shot.owner.position.x * 8 + 4)
-            laser_points.append(shot.owner.position.y * 8 + 4)
+            startpos = shot.owner.position * 8 + Vec2d(4, 4)
+            laser_points.append(startpos.x)
+            laser_points.append(startpos.y)
             laser_points.append(shot.position.x * 8 + 4)
             laser_points.append(shot.position.y * 8 + 4)
         gl.glColor3f(1, 0, 0)
@@ -97,14 +102,9 @@ class Universe:
         return (a.x - b.x) ** 2 + (a.y - b.y) ** 2 <= _SCAN_DISTANCE_SQ
 
     def move_ship(self, ship):
-        if ship.direction == Move.UP:
-            ship.position += Vec2d(0, 1)
-        elif ship.direction == Move.DOWN:
-            ship.position -= Vec2d(0, 1)
-        elif ship.direction == Move.RIGHT:
-            ship.position += Vec2d(1, 0)
-        elif ship.direction == Move.LEFT:
-            ship.position -= Vec2d(1, 0)
+        velocity, direction = _velocity_and_direction(ship)
+        ship.position += velocity
+        ship.sprite.rotation = direction
         ship.position %= self.size
 
     def perform_scan(self, ship):
