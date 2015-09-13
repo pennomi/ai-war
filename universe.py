@@ -31,7 +31,7 @@ class Universe:
         self.ships = []
         for shiptype in contender_classes:
             self.ships += [shiptype(self, Vec2d(r(0, size - 1), r(0, size - 1)))
-                           for _ in range(50)]
+                           for _ in range(10)]
 
         # Make something we can draw for the scanner
         self.scanner_model = []
@@ -59,7 +59,7 @@ class Universe:
                 continue
             shot = ship.requested_action
             # check that shot is within range
-            if self.in_range(shot.owner.position, shot.position):
+            if self.in_range(shot.owner.position, shot.position, laser=True):
                 self.shots.append(shot)
 
         # remove all dead ships (only sort of efficiently)
@@ -112,12 +112,10 @@ class Universe:
         # draw laser lines
         for shot in self.shots:
             startpos = shot.owner.position * 8 + Vec2d(4, 4)
-            if (shot.position - shot.owner.position).length < 6:
-                laser_points.append(startpos.x)
-                laser_points.append(startpos.y)
-                laser_points.append(shot.position.x * 8 + 4)
-                laser_points.append(shot.position.y * 8 + 4)
-            # Otherwise, the shot crosses the border and we'll just ignore it
+            laser_points.append(startpos.x)
+            laser_points.append(startpos.y)
+            laser_points.append(shot.position.x * 8 + 4)
+            laser_points.append(shot.position.y * 8 + 4)
 
         gl.glColor3f(1, 0, 0)
         pyglet.graphics.draw(
@@ -125,7 +123,8 @@ class Universe:
             ('v2i', laser_points)
         )
 
-    def in_range(self, a, b):
+    def in_range(self, a, b, laser=False):
+        distance = (SCAN_DISTANCE * 2) ** 2 if laser else _SCAN_DISTANCE_SQ
         a, b = Vec2d(a), Vec2d(b)  # copy
         # The points wrap around the universe
         if a.x - b.x > self.size / 2:
@@ -136,7 +135,7 @@ class Universe:
             b += Vec2d(0, self.size)
         if a.y - b.y < -self.size / 2:
             b -= Vec2d(0, self.size)
-        return (a.x - b.x) ** 2 + (a.y - b.y) ** 2 <= _SCAN_DISTANCE_SQ
+        return (a.x - b.x) ** 2 + (a.y - b.y) ** 2 <= distance
 
     def move_ship(self, ship):
         velocity, direction = _velocity_and_direction(ship)

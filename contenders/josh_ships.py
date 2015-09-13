@@ -13,7 +13,7 @@ class Bomber(Ship):
         super().__init__(*args, **kwargs)
         shots = []
         for i in range(30):
-            x, y = Vec2d(0, 5).rotated(12 * i)
+            x, y = Vec2d(0, 9).rotated(12 * i)
             shots.append(Vec2d(int(x), int(y)))
         self.shots = deque(shots)
         self.shots.rotate(random.randint(-12, 12))

@@ -39,7 +39,9 @@ from contenders.asteroid import Asteroid
 from contenders.foo_fighter import FooFighter
 from contenders.ufo import UFO
 from contenders.josh_ships import Bomber
-CONTENDERS = [Asteroid, FooFighter, UFO, Bomber]
+from contenders.flockbot import FlockBot
+
+CONTENDERS = [FlockBot, Bomber]
 
 
 def run_pyglet(loop):
