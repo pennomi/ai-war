@@ -117,25 +117,7 @@ class Universe:
                 laser_points.append(startpos.y)
                 laser_points.append(shot.position.x * 8 + 4)
                 laser_points.append(shot.position.y * 8 + 4)
-            # elif startpos.length > 100:
-            #     laser_points.append(startpos.x - 100)
-            #     laser_points.append(startpos.y - 100)
-            #     laser_points.append(shot.position.x * 8 + 4)
-            #     laser_points.append(shot.position.y * 8 + 4)
-            #     laser_points.append(startpos.x)
-            #     laser_points.append(startpos.y)
-            #     laser_points.append(shot.position.x * 8 + 4 + 100)
-            #     laser_points.append(shot.position.y * 8 + 4 + 100)
-            # else:
-            #     laser_points.append(startpos.x + 100)
-            #     laser_points.append(startpos.y + 100)
-            #     laser_points.append(shot.position.x * 8 + 4)
-            #     laser_points.append(shot.position.y * 8 + 4)
-            #     laser_points.append(startpos.x)
-            #     laser_points.append(startpos.y)
-            #     laser_points.append(shot.position.x * 8 + 4 - 100)
-            #     laser_points.append(shot.position.y * 8 + 4 - 100)
-
+            # Otherwise, the shot crosses the border and we'll just ignore it
 
         gl.glColor3f(1, 0, 0)
         pyglet.graphics.draw(
