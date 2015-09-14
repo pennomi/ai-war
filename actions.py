@@ -18,7 +18,4 @@ class Shot:
     """A returned Shot instance targets a point you want to exterminate."""
     def __init__(self, position, owner):
         self.position = position
-        # TODO: circular import
-        #if not issubclass(owner, Ship):
-        #    raise ValueError("Owner must be an instance of a Ship!")
         self.owner = owner

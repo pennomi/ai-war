@@ -19,6 +19,36 @@ def _velocity_and_direction(ship):
         return Vec2d(-1, 0), -90
 
 
+def normalize(v):
+    v = Vec2d(v)
+    if v.x < 0:
+        v.x += 100
+    elif v.x >= 100:
+        v.x -= 100
+    if v.y < 0:
+        v.y += 100
+    elif v.x >= 100:
+        v.y -= 100
+    return v
+
+
+def continuous_laser(start, end):
+    start = normalize(start)
+    end = normalize(end)
+    dv = end - start
+    seen = {(start.x, start.y)}
+    hit_tiles = list()
+    for i in range(1, 100):
+        dv.length = i * .1
+        if dv.length > (end - start).length:
+            break
+        v = start + dv
+        t = (int(v.x), int(v.y))
+        hit_tiles.append(t)
+    seen_add = seen.add
+    return [Vec2d(*x) for x in hit_tiles if not (x in seen or seen_add(x))]
+
+
 # noinspection PyBroadException
 class Universe:
     shots = []
@@ -60,11 +90,13 @@ class Universe:
             shot = ship.requested_action
             # check that shot is within range
             if self.in_range(shot.owner.position, shot.position, laser=True):
-                self.shots.append(shot)
+                shots = [Shot(p, shot.owner) for p in continuous_laser(shot.owner.position, shot.position)]
+                self.shots.extend(shots)
 
         # remove all dead ships (only sort of efficiently)
         self.explosions.clear()
         for i, ship in enumerate(self.ships):
+            # Iterate over ships AND shots to see if they overlap
             for ship2 in self.ships[i + 1:] + self.shots:
                 if ship.position == ship2.position:
                     ship.dead = True
@@ -108,20 +140,19 @@ class Universe:
                 1, pyglet.gl.GL_POINTS,
                 ('v2i', (explosion.x * 8 + 4, explosion.y * 8 + 4))
             )
-        laser_points = []
         # draw laser lines
         for shot in self.shots:
-            startpos = shot.owner.position * 8 + Vec2d(4, 4)
-            laser_points.append(startpos.x)
-            laser_points.append(startpos.y)
-            laser_points.append(shot.position.x * 8 + 4)
-            laser_points.append(shot.position.y * 8 + 4)
+            lasers = continuous_laser(shot.owner.position, shot.position)
+            vertices = [
+                (p.x * 8 + 4, p.y * 8 + 4) for p in lasers
+            ]
+            vertices = tuple(item for sublist in vertices for item in sublist)
 
-        gl.glColor3f(1, 0, 0)
-        pyglet.graphics.draw(
-            int(len(laser_points) / 2), pyglet.gl.GL_LINES,
-            ('v2i', laser_points)
-        )
+            gl.glColor3f(1, 0, 0)
+            pyglet.graphics.draw(
+                int(len(vertices) / 2), pyglet.gl.GL_LINE_LOOP,
+                ('v2i', vertices)
+            )
 
     def in_range(self, a, b, laser=False):
         distance = (SCAN_DISTANCE * 2) ** 2 if laser else _SCAN_DISTANCE_SQ
